@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+       integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+       crossorigin=""/>
+    <style>
+#map {
+  height: 1000px;
+}
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+    </style>
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
+       integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
+       crossorigin=""></script>
+    <script src="zombies.csv.js"></script>
+  </head>
+  <body>
+    <div id="map"></div>
+  </body>
+  <script>
+    var map = L.map("map").setView([39.833, -98.58], 5);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 10,
+      attribution: "OpenStreetMap"
+    }).addTo(map);
+    let lines = DATA.split("\n");
+    for (line of lines) {
+      if (line.length == 0)
+        continue;
+      let fields = line.split(",");
+      let id        = fields[0];
+      let lat       = fields[1];
+      let lon       = fields[2];
+      let state     = fields[3];
+      let name      = fields[4];
+      let d_year    = fields[5];
+      let d_month   = fields[6];
+      let d_day     = fields[7];
+      let f_year    = fields[8];
+      let f_month   = fields[9];
+      let num_days  = fields[10];
+      let is_zombie = fields[11] === "true";
+      let missing_daily_data = d_year == 0;
+      let stroke_color, fill_color;
+      if (is_zombie) {
+        stroke_color = missing_daily_data ? "#222" : "#c00";
+        fill_color = "#f03";
+      } else {
+        stroke_color = "#0c0";
+        fill_color = "#0f3";
+      }
+      var cm = L.circleMarker([lat, lon], {
+        color: stroke_color,
+        opacity: 0.8,
+        fillColor: fill_color,
+        fillOpacity: 0.8,
+        weight: 3,
+        radius: 6,
+      }).addTo(map);
+      let id2 = id.replace("USH", "USC");
+      let ghcn_daily_url = `https://www1.ncdc.noaa.gov/pub/data/ghcn/daily/hcn/${id2}.dly`
+      let content = [];
+      content.push(`<ul>`);
+      content.push(`<li><a href="${ghcn_daily_url}"><b>${id}</b></a>${missing_daily_data ? " (missing)" : ""}</li>`);
+      content.push(`<li><b>${name}, ${state}</b></li>`);
+      content.push(`<li><b>${lat},${lon}</b></li>`);
+      if (is_zombie) {
+        content.push(`<li>Most recent final: <b>${f_year}-${f_month}</b></li>`);
+        if (!missing_daily_data) {
+          content.push(`<li>Most recent daily: <b>${d_year}-${d_month}-${d_day}</b></li>`);
+          content.push(`<li>Days zombied: <b>${num_days}</b></li>`);
+        }
+      }
+      content.push(`<li><a href="https://maps.google.com/maps/place/${lat},${lon}">Google Maps</a></li>`);
+      content.push(`</ul>`);
+      cm.bindPopup(content.join("\n"));
+    }
+  </script>
+</html>
